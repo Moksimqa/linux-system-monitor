@@ -2,6 +2,8 @@
 #include "SystemSnapshot.h"
 #include <iostream>
 #include <fstream>
+#include <string>
+#include <sstream>
 
 std::string MemCollector::getName() const
 {
@@ -23,7 +25,7 @@ double MemCollector::getMemPercent() const
     return memPercent_;
 }
 
-void MemCollector::update(SystemSnapshot& snapshot)
+void MemCollector::update(SystemSnapshot &snapshot)
 {
     std::ifstream file("/proc/meminfo");
     if (!file.is_open())
@@ -31,31 +33,35 @@ void MemCollector::update(SystemSnapshot& snapshot)
         return;
     }
     std::string key;
-    std::string unit;
     unsigned long long value = 0;
-    while (file >> key >> value >> unit)
-    {
-        if (key == "MemTotal:")
-        {
-            memTotalKB_ = value;
-           
-        }
-        else if (key == "MemAvailable:")
-        {
-            memAvailableKB_ = value;
+    unsigned long long total = 0;
+    unsigned long long available = 0;
+    std::string line;
 
-        }
-        if (memTotalKB_ > 0 && memAvailableKB_ > 0)
+    while ((total == 0 || available == 0) && std::getline(file, line))
+    {
+        std::istringstream ss(line);
+        if (ss >> key >> value)
         {
-            break;
+            if (key == "MemTotal:")
+            {
+                total = value;
+            }
+            else if (key == "MemAvailable:")
+            {
+                available = value;
+            }
         }
     }
-
-    if (memTotalKB_ > 0)
+    if (total == 0 || available == 0)
     {
-        memPercent_ = 100 * (1.0 - static_cast<double>(memAvailableKB_) / memTotalKB_);
-        snapshot.totalMB = getTotalMB();
-        snapshot.usedMB = getUsedMB();
-        snapshot.memPercent = getMemPercent();
+        return;
     }
+    memTotalKB_ = total;
+    memAvailableKB_ = available;
+
+    memPercent_ = 100 * (1.0 - static_cast<double>(memAvailableKB_) / memTotalKB_);
+    snapshot.totalMB = getTotalMB();
+    snapshot.usedMB = getUsedMB();
+    snapshot.memPercent = getMemPercent();
 }

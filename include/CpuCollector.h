@@ -15,4 +15,5 @@ private:
     double cpuPercent_ = 0.0;
     unsigned long long prevTotalTicks_ = 0;
     unsigned long long prevIdleTicks_ = 0;
+    bool hasPrev_ = false;
 };

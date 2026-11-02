@@ -10,30 +10,6 @@
 #include <memory>
 #include <csignal>
 
-/*
-void dataCollectorWorker(SystemSnapshot &snapshot, std::mutex &mtx, std::atomic<bool> &running)
-{
-    CpuCollector cpu;
-    MemCollector mem;
-    NetCollector net;
-    cpu.update();
-    net.update();
-    while (running)
-    {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        cpu.update();
-        mem.update();
-        net.update();
-        std::lock_guard<std::mutex> lock(mtx);
-        snapshot.cpuPercent = cpu.getCpuPercent();
-        snapshot.memPercent = mem.getMemPercent();
-        snapshot.usedMB = mem.getUsedMB();
-        snapshot.totalMB = mem.getTotalMB();
-        snapshot.rxKBs = net.getRxKBs();
-        snapshot.txKBs = net.getTxKBs();
-    }
-}
-    */
 
 void dataCollectorWorker(SystemSnapshot &snapshot, std::mutex &mtx, std::atomic<bool> &running)
 {

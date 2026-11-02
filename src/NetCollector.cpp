@@ -3,35 +3,36 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <chrono>
 
 std::string NetCollector::getName() const
 {
     return "NET";
 }
 
-unsigned long long NetCollector::getRxKBs() const
+double NetCollector::getRxKBs() const
 {
     return rxSpeedKBs_;
 }
 
-unsigned long long NetCollector::getTxKBs() const
+double NetCollector::getTxKBs() const
 {
     return txSpeedKBs_;
 }
 
-void NetCollector::update(SystemSnapshot& snapshot)
+void NetCollector::update(SystemSnapshot &snapshot)
 {
     std::ifstream file("/proc/net/dev");
-    std::string line;
 
     if (!file.is_open())
     {
         return;
     }
-
+    std::string line;
+    unsigned long long currentRxBytes = 0;
+    unsigned long long currentTxBytes = 0;
     std::getline(file, line);
     std::getline(file, line);
-
     while (std::getline(file, line))
     {
         std::istringstream ss(line);
@@ -43,25 +44,33 @@ void NetCollector::update(SystemSnapshot& snapshot)
             continue;
         }
 
-        unsigned long long rxBytes;
+        unsigned long long rxBytes = 0;
         ss >> rxBytes;
-        unsigned long long dummy;
+        currentRxBytes += rxBytes;
+        unsigned long long dummy = 0;
         for (int i = 0; i < 7; ++i)
         {
             ss >> dummy;
         }
-        unsigned long long txBytes;
+        unsigned long long txBytes = 0;
         ss >> txBytes;
-
-        if (prevRx_ > 0)
-        {
-            rxSpeedKBs_ = (rxBytes - prevRx_) / 1024;
-            txSpeedKBs_ = (txBytes - prevTx_) / 1024;
-            snapshot.rxKBs = rxSpeedKBs_;
-            snapshot.txKBs = txSpeedKBs_;
-        }
-        prevRx_ = rxBytes;
-        prevTx_ = txBytes;
-        break;
+        currentTxBytes += txBytes;
     }
+    auto now = std::chrono::steady_clock::now();
+    if (hasPrev_ && currentRxBytes >= prevRx_ && currentTxBytes >= prevTx_)
+    {
+        std::chrono::duration<double> elapsed = now - prevTime_;
+        double dt = elapsed.count();
+        if (dt > 0)
+        {
+            rxSpeedKBs_ = (currentRxBytes - prevRx_) / 1024.0 / dt;
+            txSpeedKBs_ = (currentTxBytes - prevTx_) / 1024.0 / dt;
+        }
+        snapshot.rxKBs = rxSpeedKBs_;
+        snapshot.txKBs = txSpeedKBs_;
+    }
+    prevTime_ = now;
+    prevRx_ = currentRxBytes;
+    prevTx_ = currentTxBytes;
+    hasPrev_ = true;
 }

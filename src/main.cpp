@@ -2,14 +2,13 @@
 #include "MemCollector.h"
 #include "SystemSnapshot.h"
 #include "NetCollector.h"
-#include <iostream>
+#include "ConsoleRenderer.h"
 #include <thread>
 #include <vector>
 #include <atomic>
 #include <mutex>
 #include <memory>
 #include <csignal>
-
 
 void dataCollectorWorker(SystemSnapshot &snapshot, std::mutex &mtx, std::atomic<bool> &running)
 {
@@ -39,30 +38,6 @@ void dataCollectorWorker(SystemSnapshot &snapshot, std::mutex &mtx, std::atomic<
     }
 }
 
-std::string stringColor(double percent)
-{
-    if (percent < 50.0)
-    {
-        return "\033[32m";
-    }
-    else if (percent >= 50.0 && percent <= 80.0)
-    {
-        return "\033[33m";
-    }
-    else if (percent > 80)
-    {
-        return "\033[31m";
-    }
-    return "\033[0m";
-}
-void renderDashboard(const SystemSnapshot &snapshot)
-{
-    std::cout << "\033[H";
-    std::cout << "CPU: " << stringColor(snapshot.cpuPercent) << snapshot.cpuPercent << "\033[0m" << "% | RAM: "
-              << snapshot.usedMB << "/" << snapshot.totalMB << " MB ("
-              << stringColor(snapshot.memPercent) << snapshot.memPercent << "\033[0m" << "%)" << " | NET: " << "Receive (KB/s) : " << snapshot.rxKBs << " Transmit (KB/s) : " << snapshot.txKBs << std::endl;
-}
-
 std::atomic<bool> g_running{true};
 void signalHandler(int signum)
 {
@@ -73,10 +48,10 @@ void signalHandler(int signum)
 int main()
 {
     SystemSnapshot snapshot;
+    ConsoleRenderer renderer;
     std::mutex mtx;
     std::signal(SIGINT, signalHandler);
     std::thread worker(dataCollectorWorker, std::ref(snapshot), std::ref(mtx), std::ref(g_running));
-    std::cout << "\033[2J";
     while (g_running)
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -85,7 +60,7 @@ int main()
             std::lock_guard<std::mutex> lock(mtx);
             local = snapshot;
         }
-        renderDashboard(local);
+        renderer.renderDashboard(local);
     }
     worker.join();
 }

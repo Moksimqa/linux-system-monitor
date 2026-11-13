@@ -3,12 +3,14 @@
 #include "SystemSnapshot.h"
 #include "NetCollector.h"
 #include "ConsoleRenderer.h"
+#include "ProcessCollector.h"
 #include <thread>
 #include <vector>
 #include <atomic>
 #include <mutex>
 #include <memory>
 #include <csignal>
+#include <iostream>
 
 void dataCollectorWorker(SystemSnapshot &snapshot, std::mutex &mtx, std::atomic<bool> &running)
 {

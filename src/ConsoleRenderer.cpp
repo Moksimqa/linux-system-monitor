@@ -4,6 +4,7 @@
 #include <string>
 #include <iomanip>
 #include <cmath>
+#include <algorithm>
 
 namespace
 {
@@ -59,7 +60,7 @@ ConsoleRenderer::ConsoleRenderer()
     std::cout << "\033[2J";
 }
 
-void ConsoleRenderer::renderDashboard(const SystemSnapshot &snapshot)
+void ConsoleRenderer::renderSystemMetrics(const SystemSnapshot &snapshot)
 {
     const double cpuPercent = normalizePercent(snapshot.cpuPercent);
     const double memPercent = normalizePercent(snapshot.memPercent);
@@ -69,4 +70,30 @@ void ConsoleRenderer::renderDashboard(const SystemSnapshot &snapshot)
               << "RAM: " << makeBar(memPercent) << " " << snapshot.usedMB << "/" << snapshot.totalMB << " MB ("
               << stringColor(memPercent) << memPercent << "\033[0m" << "%)\033[K\n"
               << "NET: " << "RX : " << snapshot.rxKBs << " KB/s " << " TX : " << snapshot.txKBs << " KB/s" << "\033[K" << std::endl;
+}
+
+void ConsoleRenderer::renderProcessTable(const std::vector<ProcessInfo> &processes)
+{
+    constexpr std::size_t maxProcesses = 15;
+    const std::size_t printed = std::min(processes.size(), maxProcesses);
+    std::cout << std::left << std::setw(8) << "PID" << std::setw(8) << "STATE" << std::setw(12) << "RSS(MB)" << "NAME\033[K\n";
+    for (std::size_t i = 0; i < printed; ++i)
+    {
+        std::cout << std::left
+                  << std::setw(8) << processes[i].pid
+                  << std::setw(8) << processes[i].state
+                  << std::setw(12) << processes[i].rssKB / 1024.0
+                  << processes[i].name
+                  << "\033[K\n";
+    }
+    for (std::size_t i = printed; i < maxProcesses; ++i)
+    {
+        std::cout << "\033[K\n";
+    }
+}
+
+void ConsoleRenderer::renderDashboard(const SystemSnapshot &snapshot, const std::vector<ProcessInfo> &processes)
+{
+    renderSystemMetrics(snapshot);
+    renderProcessTable(processes);
 }

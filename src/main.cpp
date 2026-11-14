@@ -50,6 +50,7 @@ void signalHandler(int signum)
 int main()
 {
     SystemSnapshot snapshot;
+    ProcessCollector processCollector;
     ConsoleRenderer renderer;
     std::mutex mtx;
     std::signal(SIGINT, signalHandler);
@@ -62,7 +63,8 @@ int main()
             std::lock_guard<std::mutex> lock(mtx);
             local = snapshot;
         }
-        renderer.renderDashboard(local);
+        auto processes = processCollector.collect();
+        renderer.renderDashboard(local, processes);
     }
     worker.join();
 }

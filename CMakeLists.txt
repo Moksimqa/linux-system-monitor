@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 project(LinuxSystemMonitor LANGUAGES CXX)
 
 add_executable(monitor
-    src/main.cpp src/CpuCollector.cpp src/MemCollector.cpp src/NetCollector.cpp src/ConsoleRenderer.cpp src/ProcessCollector.cpp
+    src/main.cpp src/CpuCollector.cpp src/MemCollector.cpp src/NetCollector.cpp src/ConsoleRenderer.cpp src/ProcessCollector.cpp src/ProcessParser.cpp
 )
 
 target_compile_features(monitor PRIVATE cxx_std_17)

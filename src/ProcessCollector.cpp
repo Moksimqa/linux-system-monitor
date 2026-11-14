@@ -1,15 +1,16 @@
 #include "ProcessCollector.h"
 #include "ProcessInfo.h"
+#include "ProcessParser.h"
 #include <vector>
 #include <string>
 #include <filesystem>
 #include <cctype>
 #include <fstream>
-#include <sstream>
 
 std::vector<ProcessInfo> ProcessCollector::collect()
 {
     std::vector<ProcessInfo> local;
+    ProcessParser parser;
     for (const auto &entry : std::filesystem::directory_iterator("/proc"))
     {
         std::string name = entry.path().filename().string();
@@ -40,19 +41,11 @@ std::vector<ProcessInfo> ProcessCollector::collect()
         {
             continue;
         }
-        size_t openBracket = statLine.find('(');
-        size_t closeBracket = statLine.rfind(')');
 
-        if (openBracket == std::string::npos ||
-            closeBracket == std::string::npos ||
-            closeBracket + 2 >= statLine.size())
+        if (!parser.parseStatLine(statLine, process))
         {
             continue;
         }
-        std::string processName = statLine.substr(openBracket + 1, closeBracket - openBracket - 1);
-        char state = statLine[closeBracket + 2];
-        process.name = processName;
-        process.state = state;
 
         std::string statusPath = "/proc/" + name + "/status";
         std::ifstream statusFile(statusPath);
@@ -64,14 +57,10 @@ std::vector<ProcessInfo> ProcessCollector::collect()
 
         while (std::getline(statusFile, statusLine))
         {
-            std::istringstream ss(statusLine);
-            std::string fieldName;
-            ss >> fieldName;
-            if (fieldName != "VmRSS:")
+            if (!parser.parseVmRssLine(statusLine, process.rssKB))
             {
                 continue;
             }
-            ss >> process.rssKB;
             break;
         }
 

@@ -1,3 +1,4 @@
 monitor
 *.o
 .vscode/
+build/

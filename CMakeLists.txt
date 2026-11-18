@@ -58,3 +58,27 @@ target_link_libraries(process_parser_tests PRIVATE
 
 include(GoogleTest)
 gtest_discover_tests(process_parser_tests)
+
+
+
+option(ENABLE_SANITIZERS "Enable ASan and UBSan" OFF)
+
+if(ENABLE_SANITIZERS)
+    target_compile_options(monitor PRIVATE
+        -fsanitize=address,undefined
+        -fno-omit-frame-pointer
+    )
+
+    target_link_options(monitor PRIVATE
+        -fsanitize=address,undefined
+    )
+
+    target_compile_options(process_parser_tests PRIVATE
+        -fsanitize=address,undefined
+        -fno-omit-frame-pointer
+    )
+
+    target_link_options(process_parser_tests PRIVATE
+        -fsanitize=address,undefined
+    )
+endif()

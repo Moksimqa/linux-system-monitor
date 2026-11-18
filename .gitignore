@@ -2,3 +2,4 @@ monitor
 *.o
 .vscode/
 build/
+build-sanitize/

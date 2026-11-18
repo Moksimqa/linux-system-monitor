@@ -1,9 +1,73 @@
 #include "NetCollector.h"
 #include "SystemSnapshot.h"
-#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <chrono>
+#include <unordered_map>
+#include <string>
+
+bool parseNetDev(std::istream &input, std::unordered_map<std::string, NetInterfaceCounters> &interfaces)
+{
+    std::unordered_map<std::string, NetInterfaceCounters> localInterfaces;
+
+    std::string line;
+
+    if (!std::getline(input, line))
+    {
+        return false;
+    }
+
+    if (!std::getline(input, line))
+    {
+        return false;
+    }
+
+    while (std::getline(input, line))
+    {
+        std::istringstream ss(line);
+        std::string iface;
+
+        if (!(ss >> iface))
+        {
+            return false;
+        }
+
+        if (iface.empty() || iface.back() != ':')
+        {
+            return false;
+        }
+
+        iface.pop_back();
+
+        if (iface == "lo")
+        {
+            continue;
+        }
+        unsigned long long rxBytes = 0;
+        if (!(ss >> rxBytes))
+        {
+            return false;
+        }
+
+        unsigned long long dummy = 0;
+        for (int i = 0; i < 7; ++i)
+        {
+            if (!(ss >> dummy))
+            {
+                return false;
+            }
+        }
+        unsigned long long txBytes = 0;
+        if (!(ss >> txBytes))
+        {
+            return false;
+        }
+        localInterfaces[iface] = {rxBytes, txBytes};
+    }
+
+    interfaces = localInterfaces;
+    return true;
+}
 
 std::string NetCollector::getName() const
 {
@@ -28,49 +92,49 @@ void NetCollector::update(SystemSnapshot &snapshot)
     {
         return;
     }
-    std::string line;
-    unsigned long long currentRxBytes = 0;
-    unsigned long long currentTxBytes = 0;
-    std::getline(file, line);
-    std::getline(file, line);
-    while (std::getline(file, line))
+    std::unordered_map<std::string, NetInterfaceCounters> currentInterfaces;
+    if (!parseNetDev(file, currentInterfaces))
     {
-        std::istringstream ss(line);
-        std::string iface;
-        ss >> iface;
-
-        if (iface == "lo:")
-        {
-            continue;
-        }
-
-        unsigned long long rxBytes = 0;
-        ss >> rxBytes;
-        currentRxBytes += rxBytes;
-        unsigned long long dummy = 0;
-        for (int i = 0; i < 7; ++i)
-        {
-            ss >> dummy;
-        }
-        unsigned long long txBytes = 0;
-        ss >> txBytes;
-        currentTxBytes += txBytes;
+        return;
     }
     auto now = std::chrono::steady_clock::now();
-    if (hasPrev_ && currentRxBytes >= prevRx_ && currentTxBytes >= prevTx_)
+
+    unsigned long long deltaRxBytes = 0;
+    unsigned long long deltaTxBytes = 0;
+    if (hasPrev_)
     {
+        for (const auto &[iface, current] : currentInterfaces)
+        {
+            auto it = prevInterfaces_.find(iface);
+
+            if (it == prevInterfaces_.end())
+            {
+                continue;
+            }
+            const NetInterfaceCounters &previous = it->second;
+            if (current.rxBytes >= previous.rxBytes)
+            {
+                deltaRxBytes += current.rxBytes - previous.rxBytes;
+            }
+
+            if (current.txBytes >= previous.txBytes)
+            {
+                deltaTxBytes += current.txBytes - previous.txBytes;
+            }
+        }
         std::chrono::duration<double> elapsed = now - prevTime_;
         double dt = elapsed.count();
-        if (dt > 0)
+
+        if (dt > 0.0)
         {
-            rxSpeedKBs_ = (currentRxBytes - prevRx_) / 1024.0 / dt;
-            txSpeedKBs_ = (currentTxBytes - prevTx_) / 1024.0 / dt;
+            rxSpeedKBs_ = deltaRxBytes / 1024.0 / dt;
+            txSpeedKBs_ = deltaTxBytes / 1024.0 / dt;
+
+            snapshot.rxKBs = rxSpeedKBs_;
+            snapshot.txKBs = txSpeedKBs_;
         }
-        snapshot.rxKBs = rxSpeedKBs_;
-        snapshot.txKBs = txSpeedKBs_;
     }
+    prevInterfaces_ = currentInterfaces;
     prevTime_ = now;
-    prevRx_ = currentRxBytes;
-    prevTx_ = currentTxBytes;
     hasPrev_ = true;
 }

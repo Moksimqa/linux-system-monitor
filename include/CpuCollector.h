@@ -1,5 +1,6 @@
 #pragma once
 #include "IMetricCollector.h"
+#include <string>
 
 struct SystemSnapshot;
 
@@ -17,3 +18,5 @@ private:
     unsigned long long prevIdleTicks_ = 0;
     bool hasPrev_ = false;
 };
+
+bool parseCpuStatLine(const std::string &line, unsigned long long &total, unsigned long long &idle);

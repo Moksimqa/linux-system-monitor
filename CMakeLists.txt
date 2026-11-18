@@ -40,8 +40,11 @@ enable_testing()
 add_executable(monitor_tests
     tests/ProcessParserTests.cpp
     tests/MemCollectorTests.cpp
+    tests/CpuCollectorTests.cpp
+
     src/ProcessParser.cpp
     src/MemCollector.cpp
+    src/CpuCollector.cpp
 )
 
 target_include_directories(monitor_tests PRIVATE include)

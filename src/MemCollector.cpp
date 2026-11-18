@@ -5,6 +5,48 @@
 #include <string>
 #include <sstream>
 
+bool parseMemInfo(std::istream &input, unsigned long long &total, unsigned long long &available)
+{
+
+    std::string key;
+    unsigned long long value = 0;
+    unsigned long long localTotal = 0;
+    unsigned long long localAvailable = 0;
+    bool foundTotal = false;
+    bool foundAvailable = false;
+    std::string line;
+
+    while (std::getline(input, line))
+    {
+        std::istringstream ss(line);
+        if (ss >> key >> value)
+        {
+            if (key == "MemTotal:")
+            {
+                localTotal = value;
+                foundTotal = true;
+            }
+            else if (key == "MemAvailable:")
+            {
+                localAvailable = value;
+                foundAvailable = true;
+            }
+        }
+    }
+    if (!foundTotal || !foundAvailable)
+    {
+        return false;
+    }
+    if (localTotal == 0 || localAvailable > localTotal)
+    {
+        return false;
+    }
+
+    total = localTotal;
+    available = localAvailable;
+    return true;
+}
+
 std::string MemCollector::getName() const
 {
     return "RAM";
@@ -32,31 +74,13 @@ void MemCollector::update(SystemSnapshot &snapshot)
     {
         return;
     }
-    std::string key;
-    unsigned long long value = 0;
     unsigned long long total = 0;
     unsigned long long available = 0;
-    std::string line;
-
-    while ((total == 0 || available == 0) && std::getline(file, line))
-    {
-        std::istringstream ss(line);
-        if (ss >> key >> value)
-        {
-            if (key == "MemTotal:")
-            {
-                total = value;
-            }
-            else if (key == "MemAvailable:")
-            {
-                available = value;
-            }
-        }
-    }
-    if (total == 0 || available == 0)
+    if (!parseMemInfo(file, total, available))
     {
         return;
     }
+
     memTotalKB_ = total;
     memAvailableKB_ = available;
 

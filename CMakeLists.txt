@@ -37,27 +37,29 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 enable_testing()
 
-add_executable(process_parser_tests
+add_executable(monitor_tests
     tests/ProcessParserTests.cpp
+    tests/MemCollectorTests.cpp
     src/ProcessParser.cpp
+    src/MemCollector.cpp
 )
 
-target_include_directories(process_parser_tests PRIVATE include)
+target_include_directories(monitor_tests PRIVATE include)
 
-target_compile_features(process_parser_tests PRIVATE cxx_std_17)
+target_compile_features(monitor_tests PRIVATE cxx_std_17)
 
-target_compile_options(process_parser_tests PRIVATE
+target_compile_options(monitor_tests PRIVATE
     -Wall
     -Wextra
     -Wpedantic
 )
 
-target_link_libraries(process_parser_tests PRIVATE
+target_link_libraries(monitor_tests PRIVATE
     GTest::gtest_main
 )
 
 include(GoogleTest)
-gtest_discover_tests(process_parser_tests)
+gtest_discover_tests(monitor_tests)
 
 
 
@@ -73,12 +75,12 @@ if(ENABLE_SANITIZERS)
         -fsanitize=address,undefined
     )
 
-    target_compile_options(process_parser_tests PRIVATE
+    target_compile_options(monitor_tests PRIVATE
         -fsanitize=address,undefined
         -fno-omit-frame-pointer
     )
 
-    target_link_options(process_parser_tests PRIVATE
+    target_link_options(monitor_tests PRIVATE
         -fsanitize=address,undefined
     )
 endif()

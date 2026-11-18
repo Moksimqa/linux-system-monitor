@@ -1,5 +1,6 @@
 #pragma once
 #include "IMetricCollector.h"
+#include <istream>
 
 struct SystemSnapshot;
 
@@ -18,3 +19,5 @@ private:
     unsigned long long memTotalKB_ = 0;
     unsigned long long memAvailableKB_ = 0;
 };
+
+bool parseMemInfo(std::istream &input, unsigned long long &total, unsigned long long &available);

@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(LinuxSystemMonitor LANGUAGES CXX)
 
@@ -19,3 +20,41 @@ target_compile_options(monitor PRIVATE
 find_package(Threads REQUIRED)
 
 target_link_libraries(monitor PRIVATE Threads::Threads)
+
+
+
+
+
+
+include(FetchContent)
+
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+
+FetchContent_MakeAvailable(googletest)
+enable_testing()
+
+add_executable(process_parser_tests
+    tests/ProcessParserTests.cpp
+    src/ProcessParser.cpp
+)
+
+target_include_directories(process_parser_tests PRIVATE include)
+
+target_compile_features(process_parser_tests PRIVATE cxx_std_17)
+
+target_compile_options(process_parser_tests PRIVATE
+    -Wall
+    -Wextra
+    -Wpedantic
+)
+
+target_link_libraries(process_parser_tests PRIVATE
+    GTest::gtest_main
+)
+
+include(GoogleTest)
+gtest_discover_tests(process_parser_tests)

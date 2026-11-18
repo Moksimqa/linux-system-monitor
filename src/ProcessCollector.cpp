@@ -6,14 +6,22 @@
 #include <filesystem>
 #include <cctype>
 #include <fstream>
+#include <system_error>
 
 std::vector<ProcessInfo> ProcessCollector::collect()
 {
     std::vector<ProcessInfo> local;
     ProcessParser parser;
-    for (const auto &entry : std::filesystem::directory_iterator("/proc"))
+    std::error_code ec;
+    std::filesystem::directory_iterator it("/proc", ec);
+    std::filesystem::directory_iterator end;
+    if (ec)
     {
-        std::string name = entry.path().filename().string();
+        return local;
+    }
+    for (; it != end && !ec; it.increment(ec))
+    {
+        std::string name = it->path().filename().string();
         bool isPid = !name.empty();
         for (char c : name)
         {

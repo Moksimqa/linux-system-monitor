@@ -76,11 +76,13 @@ void ConsoleRenderer::renderProcessTable(const std::vector<ProcessInfo> &process
 {
     constexpr std::size_t maxProcesses = 15;
     const std::size_t printed = std::min(processes.size(), maxProcesses);
-    std::cout << std::left << std::setw(8) << "PID" << std::setw(8) << "STATE" << std::setw(12) << "RSS(MB)" << "NAME\033[K\n";
+    std::cout << std::left << std::setw(8) << "PID" << std::setw(8) << "CPU%" << std::setw(8) << "STATE" << std::setw(12) << "RSS(MB)" << "NAME\033[K\n";
     for (std::size_t i = 0; i < printed; ++i)
     {
+
         std::cout << std::left
                   << std::setw(8) << processes[i].pid
+                  << std::setw(8) << processes[i].cpuPercent
                   << std::setw(8) << processes[i].state
                   << std::setw(12) << processes[i].rssKB / 1024.0
                   << processes[i].name

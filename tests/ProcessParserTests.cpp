@@ -7,12 +7,19 @@ TEST(ProcessParserTest, ParsesValidStatLine)
 {
     ProcessParser parser;
     ProcessInfo process;
-    const std::string testString = "123 (my process) S 1 2 3";
+    const std::string testString = "123 (my process) S "
+                                   "1 1 1 0 -1 0 0 0 0 0 "
+                                   "100 50 "
+                                   "0 0 20 0 1 0 "
+                                   "777";
     bool result = parser.parseStatLine(testString, process);
 
     EXPECT_TRUE(result);
     EXPECT_EQ(process.name, "my process");
     EXPECT_EQ(process.state, 'S');
+    EXPECT_EQ(process.utime, 100);
+    EXPECT_EQ(process.stime, 50);
+    EXPECT_EQ(process.starttime, 777);
 }
 
 TEST(ProcessParserTest, RejectsMissingCloseBracket)

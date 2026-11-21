@@ -1,16 +1,45 @@
 #include "ProcessCollector.h"
 #include "ProcessInfo.h"
 #include "ProcessParser.h"
+#include "CpuCollector.h"
 #include <vector>
+#include <unordered_map>
 #include <string>
 #include <filesystem>
 #include <cctype>
 #include <fstream>
 #include <system_error>
+#include <utility>
 
 std::vector<ProcessInfo> ProcessCollector::collect()
 {
     std::vector<ProcessInfo> local;
+
+    std::ifstream file("/proc/stat");
+
+    if (!file.is_open())
+    {
+        return local;
+    }
+    std::string line;
+    if (!std::getline(file, line))
+    {
+        return local;
+    }
+
+    unsigned long long total = 0;
+    unsigned long long unusedIdle = 0;
+
+    if (!parseCpuStatLine(line, total, unusedIdle))
+    {
+        return local;
+    }
+    unsigned long long deltaTotalTicks = 0;
+    if (hasPrev_ && total > prevTotalTicks_)
+    {
+        deltaTotalTicks = total - prevTotalTicks_;
+    }
+    std::unordered_map<int, ProcessCpuHistory> currentHistory;
     ProcessParser parser;
     std::error_code ec;
     std::filesystem::directory_iterator it("/proc", ec);
@@ -19,6 +48,7 @@ std::vector<ProcessInfo> ProcessCollector::collect()
     {
         return local;
     }
+
     for (; it != end && !ec; it.increment(ec))
     {
         std::string name = it->path().filename().string();
@@ -55,6 +85,18 @@ std::vector<ProcessInfo> ProcessCollector::collect()
             continue;
         }
 
+        unsigned long long ticks = process.utime + process.stime;
+        auto prevProcessIt = prevProcesses_.find(process.pid);
+        if (prevProcessIt != prevProcesses_.end() && process.starttime == prevProcessIt->second.starttime)
+        {
+            if (ticks >= prevProcessIt->second.ticks && deltaTotalTicks > 0)
+            {
+                unsigned long long deltaTicks = ticks - prevProcessIt->second.ticks;
+                process.cpuPercent = static_cast<double>(deltaTicks) / deltaTotalTicks * 100;
+            }
+        }
+        currentHistory[process.pid] = {ticks, process.starttime};
+
         std::string statusPath = "/proc/" + name + "/status";
         std::ifstream statusFile(statusPath);
         if (!statusFile.is_open())
@@ -73,6 +115,12 @@ std::vector<ProcessInfo> ProcessCollector::collect()
         }
 
         local.push_back(process);
+    }
+    if (!ec)
+    {
+        prevProcesses_ = std::move(currentHistory);
+        prevTotalTicks_ = total;
+        hasPrev_ = true;
     }
     return local;
 }

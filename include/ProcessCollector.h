@@ -1,9 +1,22 @@
 #pragma once
-#include <vector>
 #include "ProcessInfo.h"
+#include <vector>
+#include <unordered_map>
+
+struct ProcessCpuHistory
+{
+    unsigned long long ticks = 0;
+    unsigned long long starttime = 0;
+};
 
 class ProcessCollector
 {
+
 public:
     std::vector<ProcessInfo> collect();
+
+private:
+    std::unordered_map<int, ProcessCpuHistory> prevProcesses_;
+    unsigned long long prevTotalTicks_ = 0;
+    bool hasPrev_ = false;
 };

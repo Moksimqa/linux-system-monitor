@@ -9,11 +9,18 @@ struct ProcessCpuHistory
     unsigned long long starttime = 0;
 };
 
+enum class SortMode
+{
+    Cpu,
+    Rss,
+    Pid
+};
+
 class ProcessCollector
 {
 
 public:
-    std::vector<ProcessInfo> collect();
+    std::vector<ProcessInfo> collect(SortMode mode = SortMode::Cpu);
 
 private:
     std::unordered_map<int, ProcessCpuHistory> prevProcesses_;

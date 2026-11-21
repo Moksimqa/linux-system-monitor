@@ -10,8 +10,23 @@
 #include <fstream>
 #include <system_error>
 #include <utility>
+#include <algorithm>
 
-std::vector<ProcessInfo> ProcessCollector::collect()
+bool compareByCpu(const ProcessInfo &a, const ProcessInfo &b)
+{
+    return a.cpuPercent > b.cpuPercent;
+}
+
+bool compareByPid(const ProcessInfo &a, const ProcessInfo &b)
+{
+    return a.pid < b.pid;
+}
+bool compareByRss(const ProcessInfo &a, const ProcessInfo &b)
+{
+    return a.rssKB > b.rssKB;
+}
+
+std::vector<ProcessInfo> ProcessCollector::collect(SortMode mode)
 {
     std::vector<ProcessInfo> local;
 
@@ -121,6 +136,18 @@ std::vector<ProcessInfo> ProcessCollector::collect()
         prevProcesses_ = std::move(currentHistory);
         prevTotalTicks_ = total;
         hasPrev_ = true;
+    }
+    switch (mode)
+    {
+    case SortMode::Cpu:
+        std::sort(local.begin(), local.end(), compareByCpu);
+        break;
+    case SortMode::Pid:
+        std::sort(local.begin(), local.end(), compareByPid);
+        break;
+    case SortMode::Rss:
+        std::sort(local.begin(), local.end(), compareByRss);
+        break;
     }
     return local;
 }

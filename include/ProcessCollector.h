@@ -1,5 +1,6 @@
 #pragma once
 #include "ProcessInfo.h"
+#include "SortMode.h"
 #include <vector>
 #include <unordered_map>
 
@@ -9,12 +10,6 @@ struct ProcessCpuHistory
     unsigned long long starttime = 0;
 };
 
-enum class SortMode
-{
-    Cpu,
-    Rss,
-    Pid
-};
 
 class ProcessCollector
 {

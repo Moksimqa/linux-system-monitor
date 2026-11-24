@@ -4,6 +4,8 @@
 #include "NetCollector.h"
 #include "ConsoleRenderer.h"
 #include "ProcessCollector.h"
+#include "Config.h"
+#include "CliParser.h"
 #include <thread>
 #include <vector>
 #include <atomic>
@@ -11,8 +13,9 @@
 #include <memory>
 #include <csignal>
 #include <iostream>
+#include <chrono>
 
-void dataCollectorWorker(SystemSnapshot &snapshot, std::mutex &mtx, std::atomic<bool> &running)
+void dataCollectorWorker(SystemSnapshot &snapshot, std::mutex &mtx, std::atomic<bool> &running, unsigned int interval)
 {
     std::vector<std::unique_ptr<IMetricCollector>> collectors;
     collectors.push_back(std::make_unique<CpuCollector>());
@@ -26,7 +29,7 @@ void dataCollectorWorker(SystemSnapshot &snapshot, std::mutex &mtx, std::atomic<
 
     while (running)
     {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(interval));
 
         SystemSnapshot localSnapshot;
         for (auto &c : collectors)
@@ -47,23 +50,34 @@ void signalHandler(int signum)
     g_running = false;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+    Config config;
+    if (!parseArguments(argc, argv, config))
+    {
+        std::cerr << "Error: invalid command-line arguments.\n";
+        return 1;
+    }
+    if(config.helpRequested){
+        printHelp();
+        return 0;
+    }
+
     SystemSnapshot snapshot;
     ProcessCollector processCollector;
-    ConsoleRenderer renderer;
+    ConsoleRenderer renderer(config.maxProcesses,config.colorEnabled);
     std::mutex mtx;
     std::signal(SIGINT, signalHandler);
-    std::thread worker(dataCollectorWorker, std::ref(snapshot), std::ref(mtx), std::ref(g_running));
+    std::thread worker(dataCollectorWorker, std::ref(snapshot), std::ref(mtx), std::ref(g_running),config.intervalMs);
     while (g_running)
     {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(config.intervalMs));
         SystemSnapshot local;
         {
             std::lock_guard<std::mutex> lock(mtx);
             local = snapshot;
         }
-        auto processes = processCollector.collect();
+        auto processes = processCollector.collect(config.sortMode);
         renderer.renderDashboard(local, processes);
     }
     worker.join();

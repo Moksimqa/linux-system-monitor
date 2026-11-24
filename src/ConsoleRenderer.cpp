@@ -55,7 +55,7 @@ namespace
     }
 }
 
-ConsoleRenderer::ConsoleRenderer()
+ConsoleRenderer::ConsoleRenderer(std::size_t maxProcesses, bool colorEnabled) : maxProcesses_(maxProcesses), colorEnabled_(colorEnabled)
 {
     std::cout << "\033[2J";
 }
@@ -64,18 +64,22 @@ void ConsoleRenderer::renderSystemMetrics(const SystemSnapshot &snapshot)
 {
     const double cpuPercent = normalizePercent(snapshot.cpuPercent);
     const double memPercent = normalizePercent(snapshot.memPercent);
+
+    const std::string cpuColor = colorEnabled_ ? stringColor(cpuPercent) : "";
+    const std::string memColor = colorEnabled_ ? stringColor(memPercent) : "";
+    const std::string resetColor = colorEnabled_ ? "\033[0m" : "";
+
     std::cout << std::fixed;
     std::cout << "\033[H";
-    std::cout << "CPU: " << makeBar(cpuPercent) << " " << std::setprecision(1) << stringColor(cpuPercent) << cpuPercent << "\033[0m%\033[K\n"
+    std::cout << "CPU: " << makeBar(cpuPercent) << " " << std::setprecision(1) << cpuColor << cpuPercent << resetColor << "%\033[K\n"
               << "RAM: " << makeBar(memPercent) << " " << snapshot.usedMB << "/" << snapshot.totalMB << " MB ("
-              << stringColor(memPercent) << memPercent << "\033[0m" << "%)\033[K\n"
+              << memColor << memPercent << resetColor << "%)\033[K\n"
               << "NET: " << "RX : " << snapshot.rxKBs << " KB/s " << " TX : " << snapshot.txKBs << " KB/s" << "\033[K" << std::endl;
 }
 
 void ConsoleRenderer::renderProcessTable(const std::vector<ProcessInfo> &processes)
 {
-    constexpr std::size_t maxProcesses = 15;
-    const std::size_t printed = std::min(processes.size(), maxProcesses);
+    const std::size_t printed = std::min(processes.size(), maxProcesses_);
     std::cout << std::left << std::setw(8) << "PID" << std::setw(8) << "CPU%" << std::setw(8) << "STATE" << std::setw(12) << "RSS(MB)" << "NAME\033[K\n";
     for (std::size_t i = 0; i < printed; ++i)
     {
@@ -88,7 +92,7 @@ void ConsoleRenderer::renderProcessTable(const std::vector<ProcessInfo> &process
                   << processes[i].name
                   << "\033[K\n";
     }
-    for (std::size_t i = printed; i < maxProcesses; ++i)
+    for (std::size_t i = printed; i < maxProcesses_; ++i)
     {
         std::cout << "\033[K\n";
     }

@@ -6,6 +6,7 @@
 #include "ProcessCollector.h"
 #include "Config.h"
 #include "CliParser.h"
+#include "FileLogger.h"
 #include <thread>
 #include <vector>
 #include <atomic>
@@ -58,17 +59,29 @@ int main(int argc, char *argv[])
         std::cerr << "Error: invalid command-line arguments.\n";
         return 1;
     }
-    if(config.helpRequested){
+    if (config.helpRequested)
+    {
         printHelp();
         return 0;
     }
 
+    std::unique_ptr<FileLogger> logger;
+    if (!config.outputPath.empty())
+    {
+        logger = std::make_unique<FileLogger>(config.outputPath);
+        if (!(logger->isOpen()))
+        {
+            std::cerr << "Error: Failed to open file: " << config.outputPath << '\n';
+            return 1;
+        }
+    }
+
     SystemSnapshot snapshot;
     ProcessCollector processCollector;
-    ConsoleRenderer renderer(config.maxProcesses,config.colorEnabled);
+    ConsoleRenderer renderer(config.maxProcesses, config.colorEnabled);
     std::mutex mtx;
     std::signal(SIGINT, signalHandler);
-    std::thread worker(dataCollectorWorker, std::ref(snapshot), std::ref(mtx), std::ref(g_running),config.intervalMs);
+    std::thread worker(dataCollectorWorker, std::ref(snapshot), std::ref(mtx), std::ref(g_running), config.intervalMs);
     while (g_running)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(config.intervalMs));
@@ -78,6 +91,9 @@ int main(int argc, char *argv[])
             local = snapshot;
         }
         auto processes = processCollector.collect(config.sortMode);
+        if(logger){
+            logger->log(local);
+        }
         renderer.renderDashboard(local, processes);
     }
     worker.join();

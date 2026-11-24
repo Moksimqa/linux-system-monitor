@@ -4,7 +4,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(LinuxSystemMonitor LANGUAGES CXX)
 
 add_executable(monitor
-    src/main.cpp src/CpuCollector.cpp src/MemCollector.cpp src/NetCollector.cpp src/ConsoleRenderer.cpp src/ProcessCollector.cpp src/ProcessParser.cpp src/CliParser.cpp
+    src/main.cpp src/CpuCollector.cpp src/MemCollector.cpp src/NetCollector.cpp src/ConsoleRenderer.cpp src/ProcessCollector.cpp src/ProcessParser.cpp src/CliParser.cpp src/FileLogger.cpp
 )
 
 target_compile_features(monitor PRIVATE cxx_std_17)

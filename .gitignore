@@ -3,3 +3,4 @@ monitor
 .vscode/
 build/
 build-sanitize/
+/metrics.csv
